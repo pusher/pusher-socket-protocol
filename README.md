@@ -208,7 +208,7 @@ Within the client libraries the connection is normally established when the cons
     </code>
 </div>
 
-![Connection and connection event](/images/docs/connect.png)
+![Connection and connection event](images/connect.png)
 
 ### System Events
 {: id="system-events"}
@@ -294,14 +294,13 @@ var channel = pusher.subscribe('public-channel');
 
 Since no authentication must take place when subscribing to a public channel the `pusher:subscribe` event can be sent from the client to Pusher as soon as the call to `subscribe` is made.
 
-![Subscribing to a public channel](/images/docs/subscribe.png)
+![Subscribing to a public channel](images/subscribe.png)
 
 ##### Private and Presence channel subscription
 
 Private and Presence channels require authentication so an additional call needs to be made to the application server hosting the web application in order to make sure the current user can subscribe to the given channel.
 
-![Subscribing to a private channel](http://www.websequencediagrams.com/cgi-bin/cdraw?lz=cGFydGljaXBhbnQgIkFQSSBVc2VyIiBhcyBBVQoADw5wcCBTZXJ2ABcIUwARDkNsaWVudCBMaWJyYXJ5AD0FQ0wANA5QdXNoAFYHUAoKQVUtPkNMOiBwABEFLnN1YnNjcmliZSgncHJpdmF0ZS1jaGFubmVsJykKQ0wtPkFTOi8AJgYvYXV0aC8_XG4AGgdfbmFtZT0AJw8mXG5zb2NrZXRfaWQ9PAACCT4KQVMtAHQFPGF1dGggcmVzcG9uc2U-AF8FUDp7XG4iZXZlbnQiOiIAgRQGOgCBEQkiLFxuImRhdGEiACIFAIEYByI6IgCBIg8AIwVrZXkiOiAiPHNpZ25hdHVyZT4AOgUAgSsIAEEGIDxkYXRhPn1cbn0K&s=napkin)
-<!-- Edit: http://www.websequencediagrams.com/?lz=cGFydGljaXBhbnQgIkFQSSBVc2VyIiBhcyBBVQoADw5wcCBTZXJ2ABcIUwARDkNsaWVudCBMaWJyYXJ5AD0FQ0wANA5QdXNoAFYHUAoKQVUtPkNMOiBwABEFLnN1YnNjcmliZSgncHJpdmF0ZS1jaGFubmVsJykKQ0wtPkFTOi8AJgYvYXV0aC8_XG4AGgdfbmFtZT0AJw8mXG5zb2NrZXRfaWQ9PAACCT4KQVMtAHQFPGF1dGggcmVzcG9uc2U-AF8FUDp7XG4iZXZlbnQiOiIAgRQGOgCBEQkiLFxuImRhdGEiACIFAIEYByI6IgCBIg8AIwVrZXkiOiAiPHNpZ25hdHVyZT4AOgUAgSsIAEEGIDxkYXRhPn1cbn0K&s=napkin -->
+![Subscribing to a private channel](images/subscribe-private.png)
 
 For more information on authentication of channels see the [Authenticating Users docs](/docs/authenticating_users).
 
@@ -336,7 +335,7 @@ pusher.unsubscribe('my-channel');
     </code>
 </div>
 
-![Unsubscribing](/images/docs/unsubscribe.png)
+![Unsubscribing](images/unsubscribe.png)
 
 ### Channel Events (Pusher -> Client)
 {: id="channel-events"}
@@ -368,7 +367,7 @@ channel.bind('my-event', function(data){
     </code>
 </div>
 
-![Receiving events](/images/docs/receive-events.png)
+![Receiving events](images/receive-events.png)
 
 ### Presence Channel Events
 {: id="presence-channel-events"}
@@ -515,7 +514,7 @@ channel.trigger("client-event", data);
     </code>
 </div>
 
-![Triggering a client event](http://www.websequencediagrams.com/cgi-bin/cdraw?lz=cGFydGljaXBhbnQgIkFQSSBVc2VyIiBhcyBBVQoAEA1DbGllbnQgTGlicmFyeQAeBUNMABUOUHVzaAA3B1AKCkFVLT5DTDogY2hhbm5lbC50cmlnZ2VyKCdjAEUFLWV2ZW50JyxcbiB7InNvbWUiOiJkYXRhfSkKQ0wtPlA6e1xuIgAfBSI6IgAnDCIsXG4iAE4HIiwgInByaXZhdGUtAAkKXG4ARQUiOgBMDSJ9XG59Cm5vdGUgcmlnaHQgb2YgUDogAIEvBiB0aGVuIFxuZGlzdHJpYnV0ZXMgdG9cbiBhbGwgb3RoZXJcbiBjb25uZWN0ZWQgAIE9BnMuCg&s=napkin)
+![Triggering a client event](images/client-event.png)
 <!-- edit: http://www.websequencediagrams.com/?lz=cGFydGljaXBhbnQgIkFQSSBVc2VyIiBhcyBBVQoAEA1DbGllbnQgTGlicmFyeQAeBUNMABUOUHVzaAA3B1AKCkFVLT5DTDogY2hhbm5lbC50cmlnZ2VyKCdjAEUFLWV2ZW50JyxcbiB7InNvbWUiOiJkYXRhfSkKQ0wtPlA6e1xuIgAfBSI6IgAnDCIsXG4iAE4HIiwgInByaXZhdGUtAAkKXG4ARQUiOgBMDSJ9XG59Cm5vdGUgcmlnaHQgb2YgUDogAIEvBiB0aGVuIFxuZGlzdHJpYnV0ZXMgdG9cbiBhbGwgb3RoZXJcbiBjb25uZWN0ZWQgAIE9BnMuCg&s=napkin -->
 
 ----
