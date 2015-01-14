@@ -213,7 +213,14 @@ Within the client libraries the connection is normally established when the cons
 var pusher = new Pusher('APP_KEY');
 ----
 
-image::connect.png[Sequence diagram: connection and connection event]
+////
+@startuml connect.svg
+"API User" -> Client: new Pusher("APP KEY")
+Client -> Pusher: tcp connect
+Pusher -> Client: {"event":"pusher:connection_established",...}
+@enduml
+////
+image::connect.svg[Sequence diagram: connection and connection event]
 
 [[system-events]]
 === System Events
@@ -309,13 +316,27 @@ var channel = pusher.subscribe('public-channel');
 
 Since no authentication must take place when subscribing to a public channel the `pusher:subscribe` event can be sent from the client to Pusher as soon as the call to `subscribe` is made.
 
-image::subscribe.png[Sequence diagram: subscribing to a public channel]
+////
+@startuml subscribe.svg
+"API User" -> "Client Library": pusher.subscribe("public-channel")
+"Client Library" -> Pusher: {"event":"pusher:subscribe","data":"...public-channel..."}
+@enduml
+////
+image::subscribe.svg[Sequence diagram: subscribing to a public channel]
 
 ===== Private and Presence channel subscription
 
 Private and Presence channels require authentication so an additional call needs to be made to the application server hosting the web application in order to make sure the current user can subscribe to the given channel.
 
-image::subscribe-private.png[Sequence diagram: subscribing to a private channel]
+////
+@startuml subscribe-private.svg
+"API User" -> "Client Library": pusher.subscribe("private-channel")
+"Client Library" -> "App Server": /pusher/auth/?channel_name=private-channel&\nsocket_id=<socket id>
+"App Server" --> "Client Library": <auth response>
+"Client Library" -> Pusher: {"event":"pusher:subscribe","data":"{\"channel\"\:...}"}
+@enduml
+////
+image::subscribe-private.svg[Sequence diagram: subscribing to a private channel]
 
 For more information on authentication of channels see the {docs}/authenticating_users[Authenticating Users docs].
 
@@ -355,7 +376,13 @@ var channel = pusher.subscribe('public-channel');
 pusher.unsubscribe('my-channel');
 ----
 
-image::unsubscribe.png[Sequence diagram: unsubscribing]
+////
+@startuml unsubscribe.svg
+"API User" -> "Client Library": pusher.unsubscribe('public-channel')
+"Client Library" -> Pusher: {"event": "pusher:unsubscribe", "data": "...public-channel..."}
+@enduml
+////
+image::unsubscribe.svg[Sequence diagram: unsubscribing]
 
 [[channel-events]]
 === Channel Events (Pusher -> Client)
@@ -389,7 +416,13 @@ channel.bind('my-event', function(data){
 });
 ----
 
-image::receive-events.png[Sequence diagram: Receiving events]
+////
+@startuml receive-events.svg
+Server -> Pusher: Trigger:\n channel=my-channel\n event=my-event\n data={"hello":"world"}
+Pusher -> Client: {"channel": "my-channel", "event": "my-event", "data": "{\"hello\":\"world\"}"}
+@enduml
+////
+image::receive-events.svg[Sequence diagram: Receiving events]
 
 [[presence-channel-events]]
 === Presence Channel Events
@@ -560,7 +593,14 @@ var data = {"some": "data"};
 channel.trigger("client-event", data);
 ----
 
-image::client-event.png[Sequence diagram: triggering a client event]
+////
+@startuml client-event.svg
+"API User" -> "Client Library": channel.trigger('client-event',\n {"some":"data"})
+"Client Library" -> Pusher: {"event:"client-event",\n "channel":"private-channel",\n "data":"{\"some\":\"data\"}"}
+note right: Pusher then distributes to\nall other connected clients.
+@enduml
+////
+image::client-event.svg[Sequence diagram: triggering a client event]
 
 [[error-codes]]
 ## Error Codes
