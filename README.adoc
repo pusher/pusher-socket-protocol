@@ -222,7 +222,7 @@ specified. The recommended values are:
 
 If the client supports protocol version 7, the server will send an
 `activity_timeout` value in the data hash of the
-`pusher:connection_established` event (see <<connection-events>>). The client
+`pusher:connection_established` event. The client
 SHOULD set the timeout before sending a ping to be the minimum of the value it
 has chosen though configuration and the value supplied by the server.
 
