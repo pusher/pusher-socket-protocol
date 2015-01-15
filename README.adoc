@@ -485,7 +485,7 @@ to a channel is successful.
 
 Where the `data` field is empty except for presence channels.
 
-.Present data
+.Presence data
 [source,json]
 ----
 {
