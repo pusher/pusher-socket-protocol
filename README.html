@@ -5,7 +5,7 @@
 <!--[if IE]><meta http-equiv="X-UA-Compatible" content="IE=edge"><![endif]-->
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="generator" content="Asciidoctor 1.5.2">
-<meta name="description" content="Describes the JSON based protocol used by clients to communicate with Pusher, mainly over a WebSocket connection.">
+<meta name="description" content="Describes the socket protocol used by clients to communicate with Pusher.">
 <meta name="keywords" content="pusher, socket, websocket, protocol">
 <meta name="author" content="Pusher Ltd">
 <title>Pusher Protocol</title>
@@ -426,11 +426,13 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <div id="preamble">
 <div class="sectionbody">
 <div class="paragraph">
-<p>Describes the JSON based protocol used by clients to communicate with Pusher, mainly over a WebSocket connection.
-Describes the JSON based protocol used by clients to communicate with Pusher, mainly over a WebSocket connection.</p>
+<p>Describes the socket protocol used by clients to communicate with Pusher.</p>
 </div>
 <div class="paragraph">
-<p>Changes to this protocol are handled by incrementing an integer version number. The current protocol, version 7, is documented here. Currently protocol 4 and later are supported by Pusher, however clients are encouraged to keep up to date with changes.</p>
+<p>Changes to this protocol are handled by incrementing an integer version
+number. The current protocol, version 7, is documented here. Currently
+protocol 4 and later are supported by Pusher, however clients are encouraged
+to keep up to date with changes.</p>
 </div>
 <div class="paragraph">
 <p>The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD",
@@ -440,22 +442,33 @@ interpreted as described in RFC 2119.</p>
 <div id="toc" class="toc">
 <div id="toctitle" class="title">Table of Contents</div>
 <ul class="sectlevel1">
-<li><a href="#websocket-connection">WebSocket connection</a>
+<li><a href="#overview">Overview</a>
 <ul class="sectlevel2">
+<li><a href="#transports">Transports</a></li>
+<li><a href="#events">Events</a></li>
+<li><a href="#channels">Channels</a></li>
+</ul>
+</li>
+<li><a href="#transports-2">Transports</a>
+<ul class="sectlevel2">
+<li><a href="#websocket-connection">WebSocket connection</a></li>
 <li><a href="#websocket-messages">WebSocket data messages</a></li>
 <li><a href="#ping-pong">Ping and pong messages</a></li>
 <li><a href="#connection-closure">Connection closure</a></li>
+<li><a href="#other-transports">Other transports</a></li>
 </ul>
 </li>
-<li><a href="#events">Events</a>
+<li><a href="#event-types">Event types</a>
 <ul class="sectlevel2">
-<li><a href="#double-encoding">Double encoding</a></li>
-<li><a href="#connection-events">Connection events</a></li>
-<li><a href="#system-events">System Events</a></li>
-<li><a href="#subscription-events">Subscription Events</a></li>
-<li><a href="#channel-events">Channel Events (Pusher &#8594; Client)</a></li>
-<li><a href="#presence-channel-events">Presence Channel Events</a></li>
-<li><a href="#channel-client-events">Triggering Channel Client Events</a></li>
+<li><a href="#code-pusher-connection_established-code-pusher-client"><code>pusher:connection_established</code> (Pusher &#8594; Client)</a></li>
+<li><a href="#code-pusher-error-code-pusher-client"><code>pusher:error</code> (Pusher &#8594; Client)</a></li>
+<li><a href="#pusher-subscribe"><code>pusher:subscribe</code> (Client &#8594; Pusher)</a></li>
+<li><a href="#code-pusher_internal-subscription_succeeded-code-pusher-client"><code>pusher_internal:subscription_succeeded</code> (Pusher &#8594; Client)</a></li>
+<li><a href="#code-pusher-unsubscribe-code-client-pusher"><code>pusher:unsubscribe</code> (Client &#8594; Pusher)</a></li>
+<li><a href="#code-pusher_internal-member_added-code-pusher-client"><code>pusher_internal:member_added</code> (Pusher &#8594; Client)</a></li>
+<li><a href="#code-pusher_internal-member_removed-code-pusher-client"><code>pusher_internal:member_removed</code> (Pusher &#8594; Client)</a></li>
+<li><a href="#channel-events">User events (Pusher &#8594; Client)</a></li>
+<li><a href="#channel-client-events">User events (Client &#8594; Pusher)</a></li>
 </ul>
 </li>
 <li><a href="#error-codes">Error Codes</a>
@@ -482,8 +495,108 @@ interpreted as described in RFC 2119.</p>
 </div>
 </div>
 <div class="sect1">
-<h2 id="websocket-connection">WebSocket connection</h2>
+<h2 id="overview">Overview</h2>
 <div class="sectionbody">
+<div class="paragraph">
+<p>Clients connect to the pusher service over a given transport.  Once the
+connection is established, events are exchanged between both sides.</p>
+</div>
+<div class="sect2">
+<h3 id="transports">Transports</h3>
+<div class="paragraph">
+<p>Pusher supports a number of transports but WebSocket is the default one. The
+protocol relies on the fact that WebSocket is message-based.</p>
+</div>
+<div class="paragraph">
+<p>Once a connection is established with the transport, events start flowing
+both ways.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="events">Events</h3>
+<div class="paragraph">
+<p>Events are JSON-encoded and always occupy a full message in the underlying
+transport so that each message can be read and decoded to an event.</p>
+</div>
+<div class="paragraph">
+<p>Every message is packaged as an 'event', whether it is user-generated, or if
+it is a message from the system. There is always an event name that can be
+used to determine what should happen to the payload.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-json" data-lang="json">{
+  "event": String,
+  "channel": String,
+  "data": String
+}</code></pre>
+</div>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">event (String) </dt>
+<dd>
+<p>Valid names must be alpha-numerical. The <code>pusher</code> prefix is reserved by
+Pusher for protocol expansions.</p>
+</dd>
+<dt class="hdlist1">channel (Maybe String) </dt>
+<dd>
+<p>Valid names must be alpha-numerical.
+This key may not be used depending on the event name.</p>
+</dd>
+<dt class="hdlist1">data (Maybe String) </dt>
+<dd>
+<p>Any UTF-8 string.
+This key may not be used depending on the event name.</p>
+</dd>
+</dl>
+</div>
+<div class="paragraph">
+<p>All events received and sent by clients can contain a <code>data</code> field. While all
+<code>pusher</code>-prefixed events contain only JSON-serializable hashes, it is possible
+for publishers to trigger messages containing arbitrarily-encoded data. In
+order to keep the protocol consistent, Pusher tries to send the <code>data</code> field
+as a string. In case of <code>pusher</code> events data has to be JSON-serialized first.
+For example, Pusher will send:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-json" data-lang="json">{
+  "event": "pusher:connection_established",
+  "data": "{\"socket_id\":\"123.456\"}"
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>instead of:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-json" data-lang="json">{
+  "event": "pusher:connection_established",
+  "data": {"socket_id": "123.456"}
+}</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="channels">Channels</h3>
+<div class="paragraph">
+<p>User events are always sent and received over a channel. And a channel is
+defined by it&#8217;s name.</p>
+</div>
+<div class="paragraph">
+<p>Channels with the prefix "private-" and "presence-" have different behaviors
+as described further below.</p>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="transports-2">Transports</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="websocket-connection">WebSocket connection</h3>
 <div class="paragraph">
 <p>Clients should make a WebSocket connection to</p>
 </div>
@@ -539,11 +652,17 @@ interpreted as described in RFC 2119.</p>
 <dl>
 <dt class="hdlist1">protocol (Integer) </dt>
 <dd>
-<p>The protocol version to use. If this is not supplied the protocol version to use is inferred from the version parameter (to support old javascript clients which relied on this behaviour). Failing that protocol 1 is used (this behaviour is deprecated and will in future be replaced by a 4008 error code)</p>
+<p>The protocol version to use. If this is not supplied the protocol version
+to use is inferred from the version parameter (to support old javascript
+clients which relied on this behaviour). Failing that protocol 1 is used
+(this behaviour is deprecated and will in future be replaced by a 4008
+error code)</p>
 </dd>
 <dt class="hdlist1">client (String) </dt>
 <dd>
-<p>Identifies the client which is connecting. This string should be of the form <code>platform-library</code> - for example the iOS library identifies itself as <code>iOS-libPusher</code>.</p>
+<p>Identifies the client which is connecting. This string should be of the
+form <code>platform-library</code> - for example the iOS library identifies itself as
+<code>iOS-libPusher</code>.</p>
 </dd>
 <dt class="hdlist1">version (String) </dt>
 <dd>
@@ -557,6 +676,7 @@ interpreted as described in RFC 2119.</p>
 <div class="literalblock">
 <div class="content">
 <pre>ws://ws.pusherapp.com:80/app/e4d95db9ea1004f66730?client=js&amp;version=2.2&amp;protocol=5</pre>
+</div>
 </div>
 </div>
 <div class="sect2">
@@ -577,48 +697,78 @@ Binary WebSocket frames are not supported.
 </table>
 </div>
 <div class="paragraph">
-<p>Every JSON message contains a single <strong>event</strong> and has an <code>event</code> property which is known as the event name. See <a href="#events">Events</a> below for a description of the event types.</p>
+<p>Every JSON message contains a single <strong>event</strong> and has an <code>event</code> property
+which is known as the event name. See <a href="#event-types">Event types</a> below for a description
+of the event types.</p>
 </div>
 </div>
 <div class="sect2">
 <h3 id="ping-pong">Ping and pong messages</h3>
 <div class="paragraph">
-<p>If the WebSocket connection supports ping &amp; pong (i.e. advertises itself as draft 01 or above), Pusher will send ping messages to the client in order to verify that it is active.</p>
+<p>If the WebSocket connection supports ping &amp; pong (i.e. advertises itself as
+draft 01 or above), Pusher will send ping messages to the client in order to
+verify that it is active.</p>
 </div>
 <div class="paragraph">
-<p>In protocol versions 5 and above, when using an old version of the WebSocket protocol, Pusher will send <code>pusher:ping</code> event (see <a href="#events">Events</a>) to the client. The client should respond with a <code>pusher:pong</code> event.</p>
+<p>In protocol versions 5 and above, when using an old version of the WebSocket
+protocol, Pusher will send <code>pusher:ping</code> event to the client. The client
+should respond with a <code>pusher:pong</code> event.</p>
 </div>
 <div class="sect3">
 <h4 id="detecting-that-the-connection-is-alive">Detecting that the connection is alive</h4>
 <div class="paragraph">
-<p>Both Pusher and clients require a mechanism for establishing that the connection is alive.</p>
+<p>Both Pusher and clients require a mechanism for establishing that the
+connection is alive.</p>
 </div>
 <div class="paragraph">
-<p>The basic design pattern is described in the <a href="http://www.zeromq.org/deleted:topics:heartbeating">ZeroMQ Wiki</a> and is symmetric for the client and Pusher.</p>
+<p>The basic design pattern is described in the
+<a href="http://www.zeromq.org/deleted:topics:heartbeating">ZeroMQ Wiki</a> and is
+symmetric for the client and Pusher.</p>
 </div>
 <div class="paragraph">
-<p>Essentially any messages received from the other party are considered to mean that the connection is alive. In the absence of any messages either party may check that the other side is responding by sending a ping message, to which the other party should respond with a pong.</p>
+<p>Essentially any messages received from the other party are considered to mean
+that the connection is alive. In the absence of any messages either party may
+check that the other side is responding by sending a ping message, to which
+the other party should respond with a pong.</p>
 </div>
 <div class="paragraph">
-<p>In recent WebSocket drafts ping &amp; pong are supported as part of the protocol. Unfortunately this was not the case in earlier drafts, and unfortunately it is still not possible to trigger sending a ping, or binding to a pong from JavaScript using the <a href="http://dev.w3.org/html5/websockets/#ping-and-pong-frames">W3C API</a>. For both these reasons, Pusher supports both protocol level ping-pong, and an emulated one. This means that Pusher will respond to a WebSocket protocol ping message with a pong message, and also it will respond to a <code>pusher:ping</code> event with a <code>pusher:pong</code> event (both have empty data).</p>
+<p>In recent WebSocket drafts ping &amp; pong are supported as part of the protocol.
+Unfortunately this was not the case in earlier drafts, and unfortunately it is
+still not possible to trigger sending a ping, or binding to a pong from
+JavaScript using the
+<a href="http://dev.w3.org/html5/websockets/#ping-and-pong-frames">W3C API</a>. For both
+these reasons, Pusher supports both protocol level ping-pong, and an emulated
+one. This means that Pusher will respond to a WebSocket protocol ping message
+with a pong message, and also it will respond to a <code>pusher:ping</code> event with a
+<code>pusher:pong</code> event (both have empty data).</p>
 </div>
 </div>
 <div class="sect3">
 <h4 id="recommendations-for-client-libraries">Recommendations for client libraries</h4>
 <div class="paragraph">
-<p>If the WebSocket draft supports protocol level ping-pong, then on receipt of a ping message, the client MUST respond with a pong message.</p>
+<p>If the WebSocket draft supports protocol level ping-pong, then on receipt of a
+ping message, the client MUST respond with a pong message.</p>
 </div>
 <div class="paragraph">
-<p>If the client does not support protocol level pings and advertises (on connect) that it implements a protocol version &gt;= 5 then the client MUST respond to a <code>pusher:ping</code> event with a <code>pusher:pong</code> event.</p>
+<p>If the client does not support protocol level pings and advertises (on
+connect) that it implements a protocol version &gt;= 5 then the client MUST
+respond to a <code>pusher:ping</code> event with a <code>pusher:pong</code> event.</p>
 </div>
 <div class="paragraph">
-<p>Clients SHOULD send a ping to Pusher when the connection has been inactive for some time in order to check that the connection is alive. They MUST then wait some time for receipt of a pong message before closing the connection / reconnecting. Clients SHOULD send a protocol ping if supported (sending a <code>pusher:ping</code> event will also work).</p>
+<p>Clients SHOULD send a ping to Pusher when the connection has been inactive for
+some time in order to check that the connection is alive. They MUST then wait
+some time for receipt of a pong message before closing the connection /
+reconnecting. Clients SHOULD send a protocol ping if supported (sending a
+<code>pusher:ping</code> event will also work).</p>
 </div>
 <div class="paragraph">
-<p>Clients MAY use platform specific APIs to trigger a ping check at an appropriate time (for example when network conditions change).</p>
+<p>Clients MAY use platform specific APIs to trigger a ping check at an
+appropriate time (for example when network conditions change).</p>
 </div>
 <div class="paragraph">
-<p>The precise timeouts before sending a ping and how long to wait for a pong MAY be configurable by the user of the library, but sensible defaults SHOULD be specified. The recommended values are:</p>
+<p>The precise timeouts before sending a ping and how long to wait for a pong MAY
+be configurable by the user of the library, but sensible defaults SHOULD be
+specified. The recommended values are:</p>
 </div>
 <div class="ulist">
 <ul>
@@ -631,10 +781,15 @@ Binary WebSocket frames are not supported.
 </ul>
 </div>
 <div class="paragraph">
-<p>If the client supports protocol version 7, the server will send an <code>activity_timeout</code> value in the data hash of the <code>pusher:connection_established</code> event (see <a href="#connection-events">Connection events</a>). The client SHOULD set the timeout before sending a ping to be the minimum of the value it has chosen though configuration and the value supplied by the server.</p>
+<p>If the client supports protocol version 7, the server will send an
+<code>activity_timeout</code> value in the data hash of the
+<code>pusher:connection_established</code> event (see <a href="#connection-events">[connection-events]</a>). The client
+SHOULD set the timeout before sending a ping to be the minimum of the value it
+has chosen though configuration and the value supplied by the server.</p>
 </div>
 <div class="paragraph">
-<p>The following example code is taken from the <code>pusher-js</code> library. This function is called whenever a message is received</p>
+<p>The following example code is taken from the <code>pusher-js</code> library. This
+function is called whenever a message is received</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -659,7 +814,8 @@ Binary WebSocket frames are not supported.
 <p>Clients may close the WebSocket connection at any time.</p>
 </div>
 <div class="paragraph">
-<p>The Pusher server may choose to close the WebSocket connection, in which case a close code and reason will be sent.</p>
+<p>The Pusher server may choose to close the WebSocket connection, in which case
+a close code and reason will be sent.</p>
 </div>
 <div class="paragraph">
 <p>Clients SHOULD support the following 3 ranges</p>
@@ -668,7 +824,9 @@ Binary WebSocket frames are not supported.
 <p><strong>4000-4099</strong>: The connection SHOULD NOT be re-established unchanged.</p>
 </div>
 <div class="paragraph">
-<p><strong>4100-4199</strong>: The connection SHOULD be re-established after backing off. The back-off time SHOULD be at least 1 second in duration and MAY be exponential in nature on consecutive failures.</p>
+<p><strong>4100-4199</strong>: The connection SHOULD be re-established after backing off. The
+  back-off time SHOULD be at least 1 second in duration and MAY be
+  exponential in nature on consecutive failures.</p>
 </div>
 <div class="paragraph">
 <p><strong>4200-4299</strong>: The connection SHOULD be re-established immediately.</p>
@@ -684,7 +842,9 @@ generally not necessary. See <a href="#error-codes">Error Codes</a> below for a 
 <div class="title">Note</div>
 </td>
 <td class="content">
-<strong>Old WebSocket drafts</strong>: If the underlying WebSocket does not support close codes then a <code>pusher:error</code> event will be sent with an appropriate code before the WebSocket connection is closed (see [below](#system-events)).
+<strong>Old WebSocket drafts</strong>: If the underlying WebSocket does not support
+close codes then a <code>pusher:error</code> event will be sent with an appropriate code
+before the WebSocket connection is closed (see [below](#system-events)).
 </td>
 </tr>
 </table>
@@ -696,57 +856,41 @@ generally not necessary. See <a href="#error-codes">Error Codes</a> below for a 
 <div class="title">Note</div>
 </td>
 <td class="content">
-<strong>Legacy protocols</strong>: When using protocol versions &lt; 6, a <code>pusher:error</code> event is also sent before the connection is closed (regardless of the WebSocket draft).
+<strong>Legacy protocols</strong>: When using protocol versions &lt; 6, a <code>pusher:error</code>
+event is also sent before the connection is closed (regardless of the
+WebSocket draft).
 </td>
 </tr>
 </table>
 </div>
 </div>
+<div class="sect2">
+<h3 id="other-transports">Other transports</h3>
+<div class="paragraph">
+<p>The pusher-js library implements a number of fallback transports for older
+browsers that don&#8217;t support WebSocket. This document currently doesn&#8217;t
+describe these transports because we would like to keep them just for the
+pusher-js library.</p>
+</div>
+</div>
 </div>
 </div>
 <div class="sect1">
-<h2 id="events">Events</h2>
+<h2 id="event-types">Event types</h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>Every message on a Pusher WebSocket connection is packaged as an 'event', whether it is user-generated, or if it is a message from the system. There is always an event name that can be used to determine what should happen to the payload.</p>
+<p>These are all the events defined by the protocol.</p>
 </div>
 <div class="paragraph">
-<p>Every event must contain an <code>event</code> property containing the event name.</p>
-</div>
-<div class="paragraph">
-<p>In the docs below "(Pusher &#8594; Client)" indicates that this event is sent from the Pusher server to to client, and similarly vice versa.</p>
+<p>In the docs below "(Pusher &#8594; Client)" indicates that this event is sent from
+the Pusher server to to client, and similarly vice versa.</p>
 </div>
 <div class="sect2">
-<h3 id="double-encoding">Double encoding</h3>
+<h3 id="code-pusher-connection_established-code-pusher-client"><code>pusher:connection_established</code> (Pusher &#8594; Client)</h3>
 <div class="paragraph">
-<p>All events received and sent by clients can contain a <code>data</code> field. While all <code>pusher:</code>-prefixed events contain only JSON-serializable hashes, it is possible for publishers to trigger messages containing arbitrarily-encoded data. In order to keep the protocol consistent, Pusher tries to send the <code>data</code> field as a string. In case of <code>pusher:</code> events data has to be JSON-serialized first. For example, Pusher will send:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlight"><code class="language-json" data-lang="json">{
-  "event": "pusher:connection_established",
-  "data": "{\"socket_id\":\"123.456\"}"
-}</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>instead of:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlight"><code class="language-json" data-lang="json">{
-  "event": "pusher:connection_established",
-  "data": {"socket_id": "123.456"}
-}</code></pre>
-</div>
-</div>
-</div>
-<div class="sect2">
-<h3 id="connection-events">Connection events</h3>
-<div class="sect3">
-<h4 id="code-pusher-connection_established-code-pusher-client"><code>pusher:connection_established</code> (Pusher &#8594; Client)</h4>
-<div class="paragraph">
-<p>When the client has connected to the Pusher service a <code>pusher:connection_established</code> event is triggered. Once this event has been triggered subscriptions can be made to Pusher using the WebSocket connection.</p>
+<p>After the client has connected to the Pusher service a
+<code>pusher:connection_established</code> event is triggered. The client must wait for
+that event to arrive before issuing any event itself.</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -775,12 +919,14 @@ generally not necessary. See <a href="#error-codes">Error Codes</a> below for a 
 </dd>
 <dt class="hdlist1">data.activity_timeout (Number) (Protocol 7 and above) </dt>
 <dd>
-<p>The number of seconds of server inactivity after which the client should initiate a ping message</p>
+<p>The number of seconds of server inactivity after which the client should
+initiate a ping message</p>
 </dd>
 </dl>
 </div>
 <div class="paragraph">
-<p>Within the client libraries the connection is normally established when the constructor is called.</p>
+<p>Within the client libraries the connection is normally established when the
+constructor is called.</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -793,13 +939,12 @@ generally not necessary. See <a href="#error-codes">Error Codes</a> below for a 
 </div>
 </div>
 </div>
-</div>
 <div class="sect2">
-<h3 id="system-events">System Events</h3>
-<div class="sect3">
-<h4 id="code-pusher-error-code-pusher-client"><code>pusher:error</code> (Pusher &#8594; Client)</h4>
+<h3 id="code-pusher-error-code-pusher-client"><code>pusher:error</code> (Pusher &#8594; Client)</h3>
 <div class="paragraph">
-<p>When an error occurs a <code>pusher:error</code> event will be triggered. An error may be sent from Pusher in response to invalid authentication, an invalid command, etc.</p>
+<p>When an error occurs a <code>pusher:error</code> event will be triggered. An error may be
+sent from Pusher in response to invalid authentication, an invalid command,
+etc.</p>
 </div>
 <div class="admonitionblock note">
 <table>
@@ -808,7 +953,10 @@ generally not necessary. See <a href="#error-codes">Error Codes</a> below for a 
 <div class="title">Note</div>
 </td>
 <td class="content">
-<strong>Old WebSocket drafts</strong>: Some errors result in the WebSocket connection being closed by Pusher. If the WebSocket connection does not support close codes then a <code>pusher:error</code> event will be sent with an appropriate code before the WebSocket connection is closed.
+<strong>Old WebSocket drafts</strong>: Some errors result in the WebSocket connection
+being closed by Pusher. If the WebSocket connection does not support close
+codes then a <code>pusher:error</code> event will be sent with an appropriate code before
+the WebSocket connection is closed.
 </td>
 </tr>
 </table>
@@ -837,13 +985,12 @@ generally not necessary. See <a href="#error-codes">Error Codes</a> below for a 
 </dl>
 </div>
 </div>
-</div>
 <div class="sect2">
-<h3 id="subscription-events">Subscription Events</h3>
-<div class="sect3">
-<h4 id="pusher-subscribe"><code>pusher:subscribe</code>  (Client &#8594; Pusher)</h4>
+<h3 id="pusher-subscribe"><code>pusher:subscribe</code> (Client &#8594; Pusher)</h3>
 <div class="paragraph">
-<p>The <code>pusher:subscribe</code> event is generated on the client and sent to Pusher when a subscription is made. For more information on channel names see the <a href="https://pusher.com/docs/client_api_guide/client_channels">channels documentation</a>.</p>
+<p>The <code>pusher:subscribe</code> event is generated on the client and sent to Pusher
+when a subscription is made. For more information on channel names see the
+<a href="https://pusher.com/docs/client_api_guide/client_channels">channels documentation</a>.</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -873,11 +1020,19 @@ generally not necessary. See <a href="#error-codes">Error Codes</a> below for a 
 </dd>
 <dt class="hdlist1">data.auth (String) [optional] </dt>
 <dd>
-<p>If the channel is a presence or private channel then the subscription needs to be authenticated. The authentication signature should be provided on this property if required. The value will be generated on the application server. For more information see <a href="https://pusher.com/docs/auth_signatures">authentication signatures</a>.</p>
+<p>If the channel is a presence or private channel then the subscription needs
+to be authenticated. The authentication signature should be provided on
+this property if required. The value will be generated on the application
+server. For more information see
+<a href="https://pusher.com/docs/auth_signatures">authentication signatures</a>.</p>
 </dd>
 <dt class="hdlist1">data.channel_data (Object) [optional] </dt>
 <dd>
-<p>This property should be populated with additional information about the channel if the channel is a presence channel. The JSON for the <code>channel_data</code> will be generated on the application server and should simply be assigned to this property within the client library. The format of the object is as follows:</p>
+<p>This property should be populated with additional information about the
+channel if the channel is a presence channel. The JSON for the
+<code>channel_data</code> will be generated on the application server and should
+simply be assigned to this property within the client library. The format
+of the object is as follows:</p>
 </dd>
 </dl>
 </div>
@@ -905,7 +1060,10 @@ generally not necessary. See <a href="#error-codes">Error Codes</a> below for a 
 <p>For more information see <a href="https://pusher.com/docs/authenticating_users">authenticating users</a>.</p>
 </div>
 <div class="paragraph">
-<p>From the API users point of view the subscription is made the moment that the <code>subscribe</code> method is called. However, the actual moment within the client library that a <code>pusher:subscribe</code> event is triggered depends on the type of channel that is being subscribed to.</p>
+<p>From the API users point of view the subscription is made the moment that the
+<code>subscribe</code> method is called. However, the actual moment within the client
+library that a <code>pusher:subscribe</code> event is triggered depends on the type of
+channel that is being subscribed to.</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -913,10 +1071,12 @@ generally not necessary. See <a href="#error-codes">Error Codes</a> below for a 
 var channel = pusher.subscribe('public-channel');</code></pre>
 </div>
 </div>
-<div class="sect4">
-<h5 id="public-channel-subscription">Public channel subscription</h5>
+<div class="sect3">
+<h4 id="public-channel-subscription">Public channel subscription</h4>
 <div class="paragraph">
-<p>Since no authentication must take place when subscribing to a public channel the <code>pusher:subscribe</code> event can be sent from the client to Pusher as soon as the call to <code>subscribe</code> is made.</p>
+<p>Since no authentication must take place when subscribing to a public channel
+the <code>pusher:subscribe</code> event can be sent from the client to Pusher as soon as
+the call to <code>subscribe</code> is made.</p>
 </div>
 <div class="imageblock">
 <div class="content">
@@ -924,10 +1084,12 @@ var channel = pusher.subscribe('public-channel');</code></pre>
 </div>
 </div>
 </div>
-<div class="sect4">
-<h5 id="private-and-presence-channel-subscription">Private and Presence channel subscription</h5>
+<div class="sect3">
+<h4 id="private-and-presence-channel-subscription">Private and Presence channel subscription</h4>
 <div class="paragraph">
-<p>Private and Presence channels require authentication so an additional call needs to be made to the application server hosting the web application in order to make sure the current user can subscribe to the given channel.</p>
+<p>Private and Presence channels require authentication so an additional call
+needs to be made to the application server hosting the web application in
+order to make sure the current user can subscribe to the given channel.</p>
 </div>
 <div class="imageblock">
 <div class="content">
@@ -935,132 +1097,31 @@ var channel = pusher.subscribe('public-channel');</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>For more information on authentication of channels see the <a href="https://pusher.com/docs/authenticating_users">Authenticating Users docs</a>.</p>
-</div>
-</div>
-</div>
-<div class="sect3">
-<h4 id="code-pusher-unsubscribe-code-client-pusher"><code>pusher:unsubscribe</code> (Client &#8594; Pusher)</h4>
-<div class="paragraph">
-<p>The <code>pusher:unsubscribe</code> event is generated on the client and sent to Pusher when a client wishes to unsubscribe from a channel.</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlight"><code class="language-json" data-lang="json">{
-  "event": "pusher:unsubscribe",
-  "data" : String
-}</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Where the <code>data</code> field is a JSON-encoded hash of following format:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlight"><code class="language-json" data-lang="json">{
-  "channel": String
-}</code></pre>
-</div>
-</div>
-<div class="dlist">
-<dl>
-<dt class="hdlist1">data.channel (String) </dt>
-<dd>
-<p>The name of the channel to be unsubscribed from.</p>
-</dd>
-</dl>
-</div>
-<div class="paragraph">
-<p>Unsubscribing works in the same way as subscribing to a channel with the only difference being that the event name is <code>pusher:unsubscribe</code>.</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlight"><code class="language-js" data-lang="js">var pusher = new Pusher('APP_KEY');
-var channel = pusher.subscribe('public-channel');
-
-// ...
-
-pusher.unsubscribe('my-channel');</code></pre>
-</div>
-</div>
-<div class="imageblock">
-<div class="content">
-<img src="./images/unsubscribe.svg" alt="Sequence diagram: unsubscribing">
-</div>
+<p>For more information on authentication of channels see the
+<a href="https://pusher.com/docs/authenticating_users">Authenticating Users docs</a>.</p>
 </div>
 </div>
 </div>
 <div class="sect2">
-<h3 id="channel-events">Channel Events (Pusher &#8594; Client)</h3>
+<h3 id="code-pusher_internal-subscription_succeeded-code-pusher-client"><code>pusher_internal:subscription_succeeded</code> (Pusher &#8594; Client)</h3>
 <div class="paragraph">
-<p>Channel events are associated with a single channel.</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlight"><code class="language-json" data-lang="json">{
-  "event": String,
-  "channel": String,
-  "data": String
-}</code></pre>
-</div>
-</div>
-<div class="dlist">
-<dl>
-<dt class="hdlist1">event (String) </dt>
-<dd>
-<p>The name of the event</p>
-</dd>
-<dt class="hdlist1">channel (String) </dt>
-<dd>
-<p>The name of the channel that the event is associated with e.g. <code>test-channel</code></p>
-</dd>
-<dt class="hdlist1">data (String) </dt>
-<dd>
-<p>The data associated with the event. It is strongly recommended that this be a JSON-serialized hash (e.g. <code>{"hello":"world", "foo": {"bar": 1000}}</code>), although it is possible to send any type of payload, for example a simple string.</p>
-</dd>
-</dl>
-</div>
-<div class="paragraph">
-<p><strong>Note: The following code shows how to receive an event and not how to trigger one</strong></p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlight"><code class="language-js" data-lang="js">var pusher = new Pusher('APP_KEY');
-var channel = pusher.subscribe('my-channel');
-channel.bind('my-event', function(data){
-  // handle event
-});</code></pre>
-</div>
-</div>
-<div class="imageblock">
-<div class="content">
-<img src="./images/receive-events.svg" alt="Sequence diagram: Receiving events">
-</div>
-</div>
-</div>
-<div class="sect2">
-<h3 id="presence-channel-events">Presence Channel Events</h3>
-<div class="paragraph">
-<p>Some events are related only to presence channels.</p>
-</div>
-<div class="sect3">
-<h4 id="code-pusher_internal-subscription_succeeded-code-pusher-client"><code>pusher_internal:subscription_succeeded</code> (Pusher &#8594; Client)</h4>
-<div class="paragraph">
-<p>The <code>pusher_internal:subscription_succeeded</code> event is sent when a subscription to a presence channel is successful.</p>
+<p>The <code>pusher_internal:subscription_succeeded</code> event is sent when a subscription
+to a channel is successful.</p>
 </div>
 <div class="listingblock">
 <div class="content">
 <pre class="highlight"><code class="language-json" data-lang="json">{
   "event": "pusher_internal:subscription_succeeded",
-  "channel": "presence-example-channel",
+  "channel": "example-channel",
   "data": String
 }</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Where the <code>data</code> field is a JSON-encoded hash of following format:</p>
+<p>Where the <code>data</code> field is empty except for presence channels.</p>
 </div>
 <div class="listingblock">
+<div class="title">Present data</div>
 <div class="content">
 <pre class="highlight"><code class="language-json" data-lang="json">{
   "presence": {
@@ -1116,10 +1177,63 @@ channel.bind('my-event', function(data){
 </div>
 </div>
 </div>
-<div class="sect3">
-<h4 id="code-pusher_internal-member_added-code-pusher-client"><code>pusher_internal:member_added</code> (Pusher &#8594; Client)</h4>
+<div class="sect2">
+<h3 id="code-pusher-unsubscribe-code-client-pusher"><code>pusher:unsubscribe</code> (Client &#8594; Pusher)</h3>
 <div class="paragraph">
-<p>When a user subscribes to a presence channel the <code>pusher_internal:member_added</code> is triggered on the from Pusher. The different event name is used to differentiate a public event from an internal one.</p>
+<p>The <code>pusher:unsubscribe</code> event is generated on the client and sent to Pusher
+when a client wishes to unsubscribe from a channel.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-json" data-lang="json">{
+  "event": "pusher:unsubscribe",
+  "data" : String
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Where the <code>data</code> field is a JSON-encoded hash of following format:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-json" data-lang="json">{
+  "channel": String
+}</code></pre>
+</div>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">data.channel (String) </dt>
+<dd>
+<p>The name of the channel to be unsubscribed from.</p>
+</dd>
+</dl>
+</div>
+<div class="paragraph">
+<p>Unsubscribing works in the same way as subscribing to a channel with the only
+difference being that the event name is <code>pusher:unsubscribe</code>.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-js" data-lang="js">var pusher = new Pusher('APP_KEY');
+var channel = pusher.subscribe('public-channel');
+
+// ...
+
+pusher.unsubscribe('my-channel');</code></pre>
+</div>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/unsubscribe.svg" alt="Sequence diagram: unsubscribing">
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="code-pusher_internal-member_added-code-pusher-client"><code>pusher_internal:member_added</code> (Pusher &#8594; Client)</h3>
+<div class="paragraph">
+<p>When a user subscribes to a presence channel the
+<code>pusher_internal:member_added</code> is triggered on the channel by Pusher.</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -1153,7 +1267,10 @@ channel.bind('my-event', function(data){
 </dd>
 <dt class="hdlist1">data.user_info (Object) </dt>
 <dd>
-<p>An object containing information about that user who has just subscribed to the channel. The contents of the <code>user_info</code> property depends on what the application server replied with when the presence channel was authenticated.</p>
+<p>An object containing information about that user who has just subscribed
+to the channel. The contents of the <code>user_info</code> property depends on what
+the application server replied with when the presence channel was
+authenticated.</p>
 </dd>
 </dl>
 </div>
@@ -1175,13 +1292,18 @@ channel.bind('my-event', function(data){
 </div>
 </div>
 <div class="paragraph">
-<p>For more about the <code>user_info</code> object literal see <code>user_info</code> in the <a href="https://pusher.com/docs/authenticating_users">authenticating users</a> section.</p>
+<p>For more about the <code>user_info</code> object literal see <code>user_info</code> in the
+<a href="https://pusher.com/docs/authenticating_users">authenticating users</a> section.</p>
 </div>
 </div>
-<div class="sect3">
-<h4 id="code-pusher_internal-member_removed-code-pusher-client"><code>pusher_internal:member_removed</code> (Pusher &#8594; Client)</h4>
+<div class="sect2">
+<h3 id="code-pusher_internal-member_removed-code-pusher-client"><code>pusher_internal:member_removed</code> (Pusher &#8594; Client)</h3>
 <div class="paragraph">
-<p>When a user unsubscribes from a presence channel by either actually unsubscribing or their WebSocket connection closing the <code>pusher_internal:member_removed</code> is triggered on the from Pusher. The different event name is used to differentiate a public event from an internal one.</p>
+<p>When a user unsubscribes from a presence channel by either actually
+unsubscribing or their transport connection closing the
+<code>pusher_internal:member_removed</code> is triggered on the channel by Pusher. The
+different event name is used to differentiate a public event from an internal
+one.</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -1215,11 +1337,76 @@ channel.bind('my-event', function(data){
 </dl>
 </div>
 </div>
+<div class="sect2">
+<h3 id="channel-events">User events (Pusher &#8594; Client)</h3>
+<div class="paragraph">
+<p>User events are user defined and associated with a single channel.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-json" data-lang="json">{
+  "event": String,
+  "channel": String,
+  "data": String
+}</code></pre>
+</div>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">event (String) </dt>
+<dd>
+<p>The name of the event</p>
+</dd>
+<dt class="hdlist1">channel (String) </dt>
+<dd>
+<p>The name of the channel that the event is associated with e.g. <code>test-channel</code></p>
+</dd>
+<dt class="hdlist1">data (String) </dt>
+<dd>
+<p>The data associated with the event. It is strongly recommended that this be
+a JSON-serialized hash (e.g. <code>{"hello":"world", "foo": {"bar": 1000}}</code>),
+although it is possible to send any type of payload, for example a simple
+string.</p>
+</dd>
+</dl>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+The following code shows how to receive an event and not how to trigger
+one
+</td>
+</tr>
+</table>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-js" data-lang="js">var pusher = new Pusher('APP_KEY');
+var channel = pusher.subscribe('my-channel');
+channel.bind('my-event', function(data){
+  // handle event
+});</code></pre>
+</div>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/receive-events.svg" alt="Sequence diagram: Receiving events">
+</div>
+</div>
 </div>
 <div class="sect2">
-<h3 id="channel-client-events">Triggering Channel Client Events</h3>
+<h3 id="channel-client-events">User events (Client &#8594; Pusher)</h3>
 <div class="paragraph">
-<p>It is possible to trigger events from a client when the application that the client has connected to has had client events enabled, the event name must be prefixed with <code>client-</code> and the channel must be an authenticated channel (private or presence). For more information on this see the <a href="https://pusher.com/docs/client_api_guide/client_events#trigger-events">Triggering Client Events docs</a>.</p>
+<p>It is possible to trigger events from a client when the application that the
+client has connected to has had client events enabled, the event name must be
+prefixed with <code>client-</code> and the channel must be an authenticated channel
+(private or presence). For more information on this see the
+<a href="https://pusher.com/docs/client_api_guide/client_events#trigger-events">Triggering Client Events
+docs</a>.</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -1234,15 +1421,20 @@ channel.bind('my-event', function(data){
 <dl>
 <dt class="hdlist1">event (String) </dt>
 <dd>
-<p>The name of the event which must be prefixed with <code>client-</code> to be accepted. For example, <code>client-event</code> or <code>client-something-updated</code></p>
+<p>The name of the event which must be prefixed with <code>client-</code> to be accepted.
+For example, <code>client-event</code> or <code>client-something-updated</code></p>
 </dd>
 <dt class="hdlist1">channel (String) </dt>
 <dd>
-<p>The channel for the event to be triggered on. To be accepted the channel must be either a private (<code>private-</code>) or a presence (<code>presence-</code>) channel.</p>
+<p>The channel for the event to be triggered on. To be accepted the channel
+must be either a private (<code>private-</code>) or a presence (<code>presence-</code>) channel.</p>
 </dd>
 <dt class="hdlist1">data (String/Object) </dt>
 <dd>
-<p>The data to be sent and associated with the event. It is strongly recommended that this be a hash of key/value pairs (<code>{"hello":"world", "foo": {"bar": 1000}}</code>) although it is possible to send any type of payload, for example a simple string.</p>
+<p>The data to be sent and associated with the event. It is strongly
+recommended that this be a hash of key/value pairs
+(<code>{"hello":"world", "foo": {"bar": 1000}}</code>) although it is possible to
+send any type of payload, for example a simple string.</p>
 </dd>
 </dl>
 </div>
@@ -1268,7 +1460,8 @@ channel.trigger("client-event", data);</code></pre>
 <div class="sect2">
 <h3 id="4000-4099">4000-4099</h3>
 <div class="paragraph">
-<p>Indicates an error resulting in the connection being closed by Pusher, and that attempting to reconnect using the same parameters will not succeed.</p>
+<p>Indicates an error resulting in the connection being closed by Pusher, and
+that attempting to reconnect using the same parameters will not succeed.</p>
 </div>
 <div class="dlist">
 <dl>
@@ -1310,7 +1503,8 @@ channel.trigger("client-event", data);</code></pre>
 <div class="sect2">
 <h3 id="4100-4199">4100-4199</h3>
 <div class="paragraph">
-<p>Indicates an error resulting in the connection being closed by Pusher, and that the client may reconnect after 1s or more.</p>
+<p>Indicates an error resulting in the connection being closed by Pusher, and
+that the client may reconnect after 1s or more.</p>
 </div>
 <div class="dlist">
 <dl>
@@ -1324,7 +1518,8 @@ channel.trigger("client-event", data);</code></pre>
 <div class="sect2">
 <h3 id="4200-4299">4200-4299</h3>
 <div class="paragraph">
-<p>Indicates an error resulting in the connection being closed by Pusher, and that the client may reconnect immediately.</p>
+<p>Indicates an error resulting in the connection being closed by Pusher, and
+that the client may reconnect immediately.</p>
 </div>
 <div class="dlist">
 <dl>
@@ -1334,11 +1529,14 @@ channel.trigger("client-event", data);</code></pre>
 </dd>
 <dt class="hdlist1">4201</dt>
 <dd>
-<p>Pong reply not received: ping was sent to the client, but no reply was received - see <a href="#ping-pong">Ping and pong messages</a></p>
+<p>Pong reply not received: ping was sent to the client, but no reply was
+received - see <a href="#ping-pong">Ping and pong messages</a></p>
 </dd>
 <dt class="hdlist1">4202</dt>
 <dd>
-<p>Closed after inactivity: Client has been inactive for a long time (currently 24 hours) and client does not support ping. Please upgrade to a newer WebSocket draft or implement version 5 or above of this protocol.</p>
+<p>Closed after inactivity: Client has been inactive for a long time
+(currently 24 hours) and client does not support ping. Please upgrade to a
+newer WebSocket draft or implement version 5 or above of this protocol.</p>
 </dd>
 </dl>
 </div>
@@ -1372,7 +1570,10 @@ channel.trigger("client-event", data);</code></pre>
 <div class="sect2">
 <h3 id="version-6-2013-03">Version 6 (2013-03)</h3>
 <div class="paragraph">
-<p>When the server closes connections due to an error, a <code>pusher:error</code> event is only sent if and old WebSocket draft is in use which does not support close codes. Clients SHOULD therefore expose the close code and reason in some way to the developer.</p>
+<p>When the server closes connections due to an error, a <code>pusher:error</code> event is
+only sent if and old WebSocket draft is in use which does not support close
+codes. Clients SHOULD therefore expose the close code and reason in some way
+to the developer.</p>
 </div>
 </div>
 <div class="sect2">
@@ -1384,13 +1585,14 @@ channel.trigger("client-event", data);</code></pre>
 <div class="sect2">
 <h3 id="version-4-2011-12">Version 4 (2011-12)</h3>
 <div class="paragraph">
-<p>Added a confirmation message after subscribing to public and private channels (already sent for presence channels)</p>
+<p>Added a confirmation message after subscribing to public and private channels
+(already sent for presence channels)</p>
 </div>
 </div>
 <div class="sect2">
 <h3 id="version-3-2011-02">Version 3 (2011-02)</h3>
 <div class="paragraph">
-<p>Significant change to presence events. See <a href="#presence-channel-events">Presence Channel Events</a></p>
+<p>Significant change to presence events. See <a href="#presence-channel-events">[presence-channel-events]</a></p>
 </div>
 </div>
 <div class="sect2">
@@ -1411,7 +1613,7 @@ channel.trigger("client-event", data);</code></pre>
 <div id="footer">
 <div id="footer-text">
 Version 1.0<br>
-Last updated 2015-01-14 17:12:39 GMT
+Last updated 2015-01-14 20:31:53 GMT
 </div>
 </div>
 </body>
