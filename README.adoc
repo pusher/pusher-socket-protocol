@@ -173,6 +173,7 @@ that the connection is alive. In the absence of any messages either party may
 check that the other side is responding by sending a ping message, to which
 the other party should respond with a pong.
 
+[[ping-pong]]
 ==== Ping and pong messages
 
 If the WebSocket connection supports ping & pong (i.e. advertises itself as
