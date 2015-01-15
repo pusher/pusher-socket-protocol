@@ -839,7 +839,7 @@ Added a confirmation message after subscribing to public and private channels
 
 === Version 3 (2011-02)
 
-Significant change to presence events. See <<presence-channel-events>>
+Significant change to presence events.
 
 === Version 2
 
