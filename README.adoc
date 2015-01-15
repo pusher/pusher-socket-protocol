@@ -158,18 +158,8 @@ Every JSON message contains a single **event** and has an `event` property
 which is known as the event name. See <<event-types>> below for a description
 of the event types.
 
-[[ping-pong]]
-=== Ping and pong messages
-
-If the WebSocket connection supports ping & pong (i.e. advertises itself as
-draft 01 or above), Pusher will send ping messages to the client in order to
-verify that it is active.
-
-In protocol versions 5 and above, when using an old version of the WebSocket
-protocol, Pusher will send `pusher:ping` event to the client. The client
-should respond with a `pusher:pong` event.
-
-==== Detecting that the connection is alive
+[[stale-connections]]
+=== Detecting that the connection is alive
 
 Both Pusher and clients require a mechanism for establishing that the
 connection is alive.
@@ -183,13 +173,25 @@ that the connection is alive. In the absence of any messages either party may
 check that the other side is responding by sending a ping message, to which
 the other party should respond with a pong.
 
+==== Ping and pong messages
+
+If the WebSocket connection supports ping & pong (i.e. advertises itself as
+draft 01 or above), Pusher will send ping messages to the client in order to
+verify that it is active.
+
 In recent WebSocket drafts ping & pong are supported as part of the protocol.
 Unfortunately this was not the case in earlier drafts, and unfortunately it is
 still not possible to trigger sending a ping, or binding to a pong from
 JavaScript using the
 http://dev.w3.org/html5/websockets/#ping-and-pong-frames[W3C API]. For both
-these reasons, Pusher supports both protocol level ping-pong, and an emulated
-one. This means that Pusher will respond to a WebSocket protocol ping message
+these reasons, Pusher supports both WebSocket protocol level ping-pong and an 
+emulated one.
+ 
+In protocol versions 5 and above, when using an old version of the WebSocket
+protocol, Pusher will send `pusher:ping` event to the client. The client
+should respond with a `pusher:pong` event. 
+  
+This means that Pusher will respond to a WebSocket protocol ping message
 with a pong message, and also it will respond to a `pusher:ping` event with a
 `pusher:pong` event (both have empty data).
 
