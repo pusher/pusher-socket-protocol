@@ -713,7 +713,13 @@ image::receive-events.svg[Sequence diagram: Receiving events]
 It is possible to trigger events from a client when the application that the
 client has connected to has had client events enabled, the event name must be
 prefixed with `client-` and the channel must be an authenticated channel
-(private or presence). For more information on this see the
+(private or presence).
+
+Pusher SHOULD send client events to all other clients that are subscribed to the
+private or presence channel. Pusher SHOULD NOT send the event back to the originator
+of the event.
+
+For more information see
 {docs}/client_api_guide/client_events#trigger-events[Triggering Client Events
 docs].
 
@@ -750,7 +756,7 @@ channel.trigger("client-event", data);
 @startuml client-event.svg
 "API User" -> "Client Library": channel.trigger('client-event',\n {"some":"data"})
 "Client Library" -> Pusher: {"event:"client-event",\n "channel":"private-channel",\n "data":"{\"some\":\"data\"}"}
-note right: Pusher then distributes to\nall other connected clients.
+note right: Pusher then distributes to\nall other clients subscribed\nto the channel.
 @enduml
 ////
 image::client-event.svg[Sequence diagram: triggering a client event]
