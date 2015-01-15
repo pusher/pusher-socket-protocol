@@ -266,7 +266,7 @@ generally not necessary. See <<error-codes>> below for a list of errors.
 
 NOTE: **Old WebSocket drafts**: If the underlying WebSocket does not support
 close codes then a `pusher:error` event will be sent with an appropriate code
-before the WebSocket connection is closed (see [below](#system-events)).
+before the WebSocket connection is closed.
 
 NOTE: **Legacy protocols**: When using protocol versions < 6, a `pusher:error`
 event is also sent before the connection is closed (regardless of the
