@@ -715,9 +715,8 @@ client has connected to has had client events enabled, the event name must be
 prefixed with `client-` and the channel must be an authenticated channel
 (private or presence).
 
-Pusher SHOULD send client events to all other clients that are subscribed to the
-private or presence channel. Pusher SHOULD NOT send the event back to the originator
-of the event.
+Pusher will send client events to all other clients that are subscribed to the
+private or presence channel. Pusher will not send it to the originator of the event.
 
 For more information see
 {docs}/client_api_guide/client_events#trigger-events[Triggering Client Events
