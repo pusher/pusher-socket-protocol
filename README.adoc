@@ -25,7 +25,7 @@ endif::awestruct[]
 {description}
 
 Changes to this protocol are handled by incrementing an integer version
-number. The current protocol, version 7, is documented here. Currently
+number. The current protocol, version 8, is documented here. Currently
 protocol 4 and later are supported by Pusher, however clients are encouraged
 to keep up to date with changes.
 
@@ -806,6 +806,8 @@ Any other type of error.
 
 [[changelog]]
 ## CHANGELOG
+
+=== Version 8 (???)
 
 === Version 7 (2013-11)
 
