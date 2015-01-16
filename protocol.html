@@ -430,7 +430,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </div>
 <div class="paragraph">
 <p>Changes to this protocol are handled by incrementing an integer version
-number. The current protocol, version 7, is documented here. Currently
+number. The current protocol, version 8, is documented here. Currently
 protocol 4 and later are supported by Pusher, however clients are encouraged
 to keep up to date with changes.</p>
 </div>
@@ -466,6 +466,7 @@ interpreted as described in RFC 2119.</p>
 <li><a href="#pusher-pong"><code>pusher:pong</code> (Pusher &#8592;&#8594; Client)</a></li>
 <li><a href="#pusher-subscribe"><code>pusher:subscribe</code> (Client &#8594; Pusher)</a></li>
 <li><a href="#code-pusher_internal-subscription_succeeded-code-pusher-client"><code>pusher_internal:subscription_succeeded</code> (Pusher &#8594; Client)</a></li>
+<li><a href="#code-pusher_internal-subscription_failed-code-pusher-client"><code>pusher_internal:subscription_failed</code> (Pusher &#8594; Client)</a></li>
 <li><a href="#code-pusher-unsubscribe-code-client-pusher"><code>pusher:unsubscribe</code> (Client &#8594; Pusher)</a></li>
 <li><a href="#code-pusher_internal-member_added-code-pusher-client"><code>pusher_internal:member_added</code> (Pusher &#8594; Client)</a></li>
 <li><a href="#code-pusher_internal-member_removed-code-pusher-client"><code>pusher_internal:member_removed</code> (Pusher &#8594; Client)</a></li>
@@ -483,6 +484,7 @@ interpreted as described in RFC 2119.</p>
 </li>
 <li><a href="#changelog">CHANGELOG</a>
 <ul class="sectlevel2">
+<li><a href="#version-8">Version 8 (???)</a></li>
 <li><a href="#version-7-2013-11">Version 7 (2013-11)</a></li>
 <li><a href="#version-6-2013-03">Version 6 (2013-03)</a></li>
 <li><a href="#version-5-2012-01">Version 5 (2012-01)</a></li>
@@ -528,6 +530,7 @@ used to determine what should happen to the payload.</p>
 <div class="listingblock">
 <div class="content">
 <pre class="highlight"><code class="language-json" data-lang="json">{
+  "id": String,
   "event": String,
   "channel": String,
   "data": String
@@ -536,6 +539,10 @@ used to determine what should happen to the payload.</p>
 </div>
 <div class="dlist">
 <dl>
+<dt class="hdlist1">id (Maybe String) </dt>
+<dd>
+<p>Event identifier unique per channel.</p>
+</dd>
 <dt class="hdlist1">event (String) </dt>
 <dd>
 <p>Valid names must be alpha-numerical. The <code>pusher</code> prefix is reserved by
@@ -1041,7 +1048,8 @@ when a subscription is made. For more information on channel names see the
 <pre class="highlight"><code class="language-json" data-lang="json">{
   "channel": String,
   "auth": String,
-  "channel_data": Object
+  "channel_data": Object,
+  "resume_after_id": String
 }</code></pre>
 </div>
 </div>
@@ -1065,7 +1073,14 @@ authentication normally takes place on an application server.</p>
 channel if the channel is a presence channel. The JSON for the
 <code>channel_data</code> will be generated on the application server and should
 simply be assigned to this property within the client library. The format
-of the object is as follows:</p>
+of the object is as follows.</p>
+</dd>
+<dt class="hdlist1">data.resume_after_id (String) [optional] </dt>
+<dd>
+<p>An event ID to resume the subscription from. If provided, Pusher will send
+the next events after the given ID until it catches up with history. If
+Pusher doesn&#8217;t have that ID in store the <code>pusher:subscription_succeeded</code>
+event will have a different event ID in its <code>resume_after_id</code> key value.</p>
 </dd>
 </dl>
 </div>
@@ -1165,6 +1180,21 @@ to a channel is successful.</p>
 }</code></pre>
 </div>
 </div>
+<div class="paragraph">
+<p>In case the <code>resume_after_id</code> has been given during subscription, resume info
+is also added to the response.</p>
+</div>
+<div class="listingblock">
+<div class="title">Resume data</div>
+<div class="content">
+<pre class="highlight"><code class="language-json" data-lang="json">{
+  "resume": {
+    "after_id": String,
+    "ok": Bool
+  }
+}</code></pre>
+</div>
+</div>
 <div class="dlist">
 <dl>
 <dt class="hdlist1">channel (String) </dt>
@@ -1182,6 +1212,16 @@ to a channel is successful.</p>
 <dt class="hdlist1">data.presence.count (Integer) </dt>
 <dd>
 <p>The number of users subscribed to the presence channel</p>
+</dd>
+<dt class="hdlist1">data.resume.after_id (String) </dt>
+<dd>
+<p>The ID this subscription is going to resume after. If the requested
+data is not available the ID will differ from the requested one.</p>
+</dd>
+<dt class="hdlist1">data.resume.ok (Bool) </dt>
+<dd>
+<p>Returns true if Pusher was able to resume from the requested event ID.
+False means one or more messages might be missing.</p>
 </dd>
 </dl>
 </div>
@@ -1208,6 +1248,58 @@ to a channel is successful.</p>
   }"
 }</code></pre>
 </div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="code-pusher_internal-subscription_failed-code-pusher-client"><code>pusher_internal:subscription_failed</code> (Pusher &#8594; Client)</h3>
+<div class="paragraph">
+<p>The <code>pusher_internal:subscription_failed</code> event is sent when the subscription
+to a channel couldn&#8217;t complete for any reasons.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-json" data-lang="json">{
+  "event": "pusher:subscription_failed",
+  "channel": String,
+  "data": String
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Where the <code>data</code> field is a JSON-encoded hash of following format:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-json" data-lang="json">{
+  "code": Integer,
+  "message": String
+}</code></pre>
+</div>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">data.code (Integer) </dt>
+<dd>
+<p>An error code. The table of specified errors follows.</p>
+</dd>
+<dt class="hdlist1">data.message (String) </dt>
+<dd>
+<p>Explanation in english of the error.</p>
+</dd>
+</dl>
+</div>
+<div class="paragraph">
+<p>Some existing errors:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>3000 : Authentication error</p>
+</li>
+<li>
+<p>3001 : Resume not supported</p>
+</li>
+</ul>
 </div>
 </div>
 <div class="sect2">
@@ -1378,6 +1470,7 @@ one.</p>
 <div class="listingblock">
 <div class="content">
 <pre class="highlight"><code class="language-json" data-lang="json">{
+  "id": String,
   "event": String,
   "channel": String,
   "data": String
@@ -1386,6 +1479,10 @@ one.</p>
 </div>
 <div class="dlist">
 <dl>
+<dt class="hdlist1">id (String) </dt>
+<dd>
+<p>Event identifier</p>
+</dd>
 <dt class="hdlist1">event (String) </dt>
 <dd>
 <p>The name of the event</p>
@@ -1601,6 +1698,19 @@ newer WebSocket draft or implement version 5 or above of this protocol.</p>
 <h2 id="changelog">CHANGELOG</h2>
 <div class="sectionbody">
 <div class="sect2">
+<h3 id="version-8">Version 8 (???)</h3>
+<div class="paragraph">
+<p>Published events now have an event ID associated to them.</p>
+</div>
+<div class="paragraph">
+<p>Add a resume arguments to the subscription and subscription ack.</p>
+</div>
+<div class="paragraph">
+<p>Add a <code>pusher_internal:subscription_failed</code> event to notify subscription
+issues to the client.</p>
+</div>
+</div>
+<div class="sect2">
 <h3 id="version-7-2013-11">Version 7 (2013-11)</h3>
 <div class="paragraph">
 <p>The server now sends the activity timeout in the
@@ -1653,7 +1763,7 @@ to the developer.</p>
 <div id="footer">
 <div id="footer-text">
 Version 1.0<br>
-Last updated 2015-01-21 12:47:56 GMT
+Last updated 2015-01-21 12:49:44 GMT
 </div>
 </div>
 </body>
