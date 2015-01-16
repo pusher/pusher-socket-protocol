@@ -1,4 +1,4 @@
 
-README.html: README.adoc
-	plantuml -o images/ -tsvg README.adoc
-	asciidoctor README.adoc
+protocol.html: protocol.adoc
+	plantuml -o images/ -tsvg protocol.adoc
+	asciidoctor protocol.adoc
