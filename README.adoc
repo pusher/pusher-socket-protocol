@@ -555,6 +555,38 @@ data.resume.ok (Bool) ::
 }
 ----
 
+=== `pusher_internal:subscription_failed` (Pusher -> Client)
+
+The `pusher_internal:subscription_failed` event is sent when the subscription
+to a channel couldn't complete for any reasons.
+
+[source,json]
+----
+{
+  "event": "pusher:subscription_failed",
+  "channel": String,
+  "data": String
+}
+----
+
+Where the `data` field is a JSON-encoded hash of following format:
+
+[source,json]
+----
+{
+  "code": Integer,
+  "message": String
+}
+
+data.code (Integer) ::
+  An error code. The table of specified errors follows.
+data.message (String) ::
+  Explanation in english of the error.
+
+Some existing errors:
+
+* 3000 : Authentitcation error
+* 3001 : Message history not supported
 
 === `pusher:unsubscribe` (Client -> Pusher)
 
@@ -840,6 +872,9 @@ Any other type of error.
 Published events now have an event ID associated to them.
 
 Add a resume arguments to the subscription and subscription ack.
+
+Add a `pusher_internal:subscription_failed` event to notify subscription
+issues to the client.
 
 === Version 7 (2013-11)
 
