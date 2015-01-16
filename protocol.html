@@ -462,6 +462,8 @@ interpreted as described in RFC 2119.</p>
 <ul class="sectlevel2">
 <li><a href="#code-pusher-connection_established-code-pusher-client"><code>pusher:connection_established</code> (Pusher &#8594; Client)</a></li>
 <li><a href="#code-pusher-error-code-pusher-client"><code>pusher:error</code> (Pusher &#8594; Client)</a></li>
+<li><a href="#pusher-ping"><code>pusher:ping</code> (Pusher &#8592;&#8594; Client)</a></li>
+<li><a href="#pusher-pong"><code>pusher:pong</code> (Pusher &#8592;&#8594; Client)</a></li>
 <li><a href="#pusher-subscribe"><code>pusher:subscribe</code> (Client &#8594; Pusher)</a></li>
 <li><a href="#code-pusher_internal-subscription_succeeded-code-pusher-client"><code>pusher_internal:subscription_succeeded</code> (Pusher &#8594; Client)</a></li>
 <li><a href="#code-pusher-unsubscribe-code-client-pusher"><code>pusher:unsubscribe</code> (Client &#8594; Pusher)</a></li>
@@ -986,6 +988,34 @@ the WebSocket connection is closed.
 <p>A code that identifies the error that has occurred. See <a href="#error-codes">Error Codes</a> below.</p>
 </dd>
 </dl>
+</div>
+</div>
+<div class="sect2">
+<h3 id="pusher-ping"><code>pusher:ping</code> (Pusher &#8592;&#8594; Client)</h3>
+<div class="paragraph">
+<p>When one side wants to verify that the connection is still healty, a
+<code>pusher:ping</code> event is sent to the other side. See <a href="#ping-pong">Ping and pong messages</a>.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-json" data-lang="json">{
+  "event": "pusher:ping"
+}</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="pusher-pong"><code>pusher:pong</code> (Pusher &#8592;&#8594; Client)</h3>
+<div class="paragraph">
+<p>Used to reply to a <code>pusher:ping</code> event to verify that the connection is still
+healty. See <a href="#ping-pong">Ping and pong messages</a>.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-json" data-lang="json">{
+  "event": "pusher:pong"
+}</code></pre>
+</div>
 </div>
 </div>
 <div class="sect2">
@@ -1623,7 +1653,7 @@ to the developer.</p>
 <div id="footer">
 <div id="footer-text">
 Version 1.0<br>
-Last updated 2015-01-16 11:29:52 GMT
+Last updated 2015-01-21 12:47:56 GMT
 </div>
 </div>
 </body>

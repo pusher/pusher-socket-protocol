@@ -362,6 +362,32 @@ data.message (String) ::
 data.code (Integer) - optional ::
   A code that identifies the error that has occurred. See <<error-codes>> below.
 
+[[pusher-ping]]
+=== `pusher:ping` (Pusher <--> Client)
+
+When one side wants to verify that the connection is still healty, a
+`pusher:ping` event is sent to the other side. See <<ping-pong>>.
+
+[source,json]
+----
+{
+  "event": "pusher:ping"
+}
+----
+
+[[pusher-pong]]
+=== `pusher:pong` (Pusher <--> Client)
+
+Used to reply to a `pusher:ping` event to verify that the connection is still
+healty. See <<ping-pong>>.
+
+[source,json]
+----
+{
+  "event": "pusher:pong"
+}
+----
+
 [[pusher-subscribe]]
 === `pusher:subscribe` (Client -> Pusher)
 
