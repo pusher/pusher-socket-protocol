@@ -25,7 +25,7 @@ endif::awestruct[]
 {description}
 
 Changes to this protocol are handled by incrementing an integer version
-number. The current protocol, version 7, is documented here. Currently
+number. The current protocol, version 8, is documented here. Currently
 protocol 4 and later are supported by Pusher, however clients are encouraged
 to keep up to date with changes.
 
@@ -61,12 +61,15 @@ used to determine what should happen to the payload.
 [source,json]
 ----
 {
+  "id": String,
   "event": String,
   "channel": String,
   "data": String
 }
 ----
 
+id (Maybe String) ::
+  Event identifier unique per channel.
 event (String) ::
   Valid names must be alpha-numerical. The `pusher` prefix is reserved by
   Pusher for protocol expansions.
@@ -410,7 +413,8 @@ Where the `data` field is a JSON-encoded hash of following format:
 {
   "channel": String,
   "auth": String,
-  "channel_data": Object
+  "channel_data": Object,
+  "resume_after_id": String
 }
 ----
 
@@ -427,7 +431,12 @@ data.channel_data (Object) [optional] ::
   channel if the channel is a presence channel. The JSON for the
   `channel_data` will be generated on the application server and should
   simply be assigned to this property within the client library. The format
-  of the object is as follows:
+  of the object is as follows.
+data.resume_after_id (String) [optional] ::
+  An event ID to resume the subscription from. If provided, Pusher will send
+  the next events after the given ID until it catches up with history. If
+  Pusher doesn't have that ID in store the `pusher:subscription_succeeded`
+  event will have a different event ID in its `resume_after_id` key value.
 
 .Example JSON
 [source,json]
@@ -523,6 +532,20 @@ Where the `data` field is empty except for presence channels.
 }
 ----
 
+In case the `resume_after_id` has been given during subscription, resume info
+is also added to the response.
+
+.Resume data
+[source,json]
+----
+{
+  "resume": {
+    "after_id": String,
+    "ok": Bool 
+  }
+}
+----
+
 channel (String) ::
   The presence channel name
 data.presence.ids (Array) ::
@@ -531,6 +554,12 @@ data.presence.hash (Hash) ::
   A hash of user IDs to object literals containing information about that user.
 data.presence.count (Integer) ::
   The number of users subscribed to the presence channel
+data.resume.after_id (String) ::
+  The ID this subscription is going to resume after. If the requested 
+  data is not available the ID will differ from the requested one.
+data.resume.ok (Bool) ::
+  Returns true if Pusher was able to resume from the requested event ID.
+  False means one or more messages might be missing.
 
 .Example JSON
 [source,json]
@@ -556,6 +585,39 @@ data.presence.count (Integer) ::
 }
 ----
 
+=== `pusher_internal:subscription_failed` (Pusher -> Client)
+
+The `pusher_internal:subscription_failed` event is sent when the subscription
+to a channel couldn't complete for any reasons.
+
+[source,json]
+----
+{
+  "event": "pusher:subscription_failed",
+  "channel": String,
+  "data": String
+}
+----
+
+Where the `data` field is a JSON-encoded hash of following format:
+
+[source,json]
+----
+{
+  "code": Integer,
+  "message": String
+}
+----
+
+data.code (Integer) ::
+  An error code. The table of specified errors follows.
+data.message (String) ::
+  Explanation in english of the error.
+
+Some existing errors:
+
+* 3000 : Authentication error
+* 3001 : Resume not supported
 
 === `pusher:unsubscribe` (Client -> Pusher)
 
@@ -697,12 +759,15 @@ User events are user defined and associated with a single channel.
 [source,json]
 ----
 {
+  "id": String,
   "event": String,
   "channel": String,
   "data": String
 }
 ----
 
+id (String) ::
+  Event identifier
 event (String) ::
   The name of the event
 channel (String) ::
@@ -840,6 +905,15 @@ Any other type of error.
 
 [[changelog]]
 ## CHANGELOG
+
+=== Version 8 (???)
+
+Published events now have an event ID associated to them.
+
+Add a resume arguments to the subscription and subscription ack.
+
+Add a `pusher_internal:subscription_failed` event to notify subscription
+issues to the client.
 
 === Version 7 (2013-11)
 
