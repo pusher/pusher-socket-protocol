@@ -311,7 +311,8 @@ Where the `data` field is a JSON-encoded hash of following format:
 ----
 {
   "socket_id": String,
-  "activity_timeout": Number
+  "activity_timeout": Number,
+  "protocol": Integer
 }
 ----
 
@@ -320,6 +321,9 @@ data.socket_id (String) ::
 data.activity_timeout (Number) (Protocol 7 and above) ::
   The number of seconds of server inactivity after which the client should
   initiate a ping message
+data.protocol (Number) (Protocol 8 and above) ::
+  The protocol version supported by the server. Can be version 7 if it doesn't
+  support resume.
 
 Within the client libraries the connection is normally established when the
 constructor is called.
