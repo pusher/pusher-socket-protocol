@@ -24,6 +24,13 @@ endif::awestruct[]
 
 {description}
 
+[NOTE]
+====
+The protocol documentation is mostly intended for library developers.
+Unless you're writing a library, you may wish to consult the server API overview
+instead - http://pusher.github.io/pusher-http-api-reference[Pusher HTTP API Reference]
+====
+
 Changes to this protocol are handled by incrementing an integer version
 number. The current protocol, version 7, is documented here. Currently
 protocol 4 and later are supported by Pusher, however clients are encouraged
@@ -185,13 +192,13 @@ Unfortunately this was not the case in earlier drafts, and unfortunately it is
 still not possible to trigger sending a ping, or binding to a pong from
 JavaScript using the
 http://dev.w3.org/html5/websockets/#ping-and-pong-frames[W3C API]. For both
-these reasons, Pusher supports both WebSocket protocol level ping-pong and an 
+these reasons, Pusher supports both WebSocket protocol level ping-pong and an
 emulated one.
- 
+
 In protocol versions 5 and above, when using an old version of the WebSocket
 protocol, Pusher will send `pusher:ping` event to the client. The client
-should respond with a `pusher:pong` event. 
-  
+should respond with a `pusher:pong` event.
+
 This means that Pusher will respond to a WebSocket protocol ping message
 with a pong message, and also it will respond to a `pusher:ping` event with a
 `pusher:pong` event (both have empty data).
