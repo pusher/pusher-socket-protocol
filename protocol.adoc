@@ -28,7 +28,7 @@ endif::awestruct[]
 ====
 The protocol documentation is mostly intended for library developers.
 Unless you're writing a library, you may wish to consult the server API overview
-instead - http://pusher.github.io/pusher-http-api[Pusher HTTP API Reference]
+instead - http://pusher.github.io/pusher-http-api-reference[Pusher HTTP API Reference]
 ====
 
 Changes to this protocol are handled by incrementing an integer version
