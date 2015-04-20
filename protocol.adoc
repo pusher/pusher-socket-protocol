@@ -1,6 +1,6 @@
 = Pusher Protocol
 Pusher Ltd <info@pusher.com>
-v1.0, 2014-01-01
+v7.0, 2014-01-01
 :page-layout: base
 :page-javascripts: [view-result]
 :description: Describes the socket protocol used by clients to communicate with Pusher.
