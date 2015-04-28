@@ -532,8 +532,7 @@ Where the `data` field is empty except for presence channels.
 }
 ----
 
-In case the `resume_after_id` has been given during subscription, resume info
-is also added to the response.
+Resume info will also be present.
 
 .Resume data
 [source,json]
