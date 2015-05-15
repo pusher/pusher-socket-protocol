@@ -409,7 +409,7 @@ when a subscription is made. For more information on channel names see the
   "data": {
     "channel": String,
     "auth": String,
-    "channel_data": Object
+    "channel_data": String
   }
 }
 ----
@@ -427,7 +427,7 @@ data.auth (String) [optional] ::
 data.channel_data (String) [optional] ::
   This property should be populated with additional information about the channel
   if the channel is a presence channel. The JSON for the `channel_data` will be
-  generated on the application server and should be encoded as a string as
+  generated on the application server and should be encoded as a string and
   assigned to this property. The format of the object is as follows:
 
 .Example JSON
