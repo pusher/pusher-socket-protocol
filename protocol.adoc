@@ -567,16 +567,9 @@ when a client wishes to unsubscribe from a channel.
 ----
 {
   "event": "pusher:unsubscribe",
-  "data" : String
-}
-----
-
-Where the `data` field is a JSON-encoded hash of following format:
-
-[source,json]
-----
-{
-  "channel": String
+  "data" : {
+    "channel": String
+  }
 }
 ----
 
